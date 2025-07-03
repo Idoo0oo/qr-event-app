@@ -1,12 +1,47 @@
 const { Guest } = require('../models');
+const { sendInvitationEmail } = require('../services/email.service');
 
 exports.createGuest = async (req, res) => {
   try {
     const { name, email, category } = req.body;
     const newGuest = await Guest.create({ name, email, category });
+    sendInvitationEmail(newGuest);
     res.status(201).json({ data: newGuest });
   } catch (error) {
     res.status(400).json({ message: 'Error creating guest', error: error.message });
+  }
+};
+
+exports.selfRegisterGuest = async (req, res) => {
+  try {
+    const { name, email, category } = req.body;
+    
+    // Validasi dasar
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required.' });
+    }
+
+    // Cek apakah email sudah terdaftar
+    const existingGuest = await Guest.findOne({ where: { email } });
+    if (existingGuest) {
+        return res.status(409).json({ message: 'This email address has already been registered.' });
+    }
+
+    const newGuest = await Guest.create({ name, email, category });
+
+    // Kirim email undangan setelah berhasil mendaftar
+    await sendInvitationEmail(newGuest);
+
+    res.status(201).json({ 
+        message: 'Registration successful! Please check your email for the QR code invitation.',
+        data: { id: newGuest.id, name: newGuest.name } 
+    });
+  } catch (error) {
+    // Tangani error validasi (misalnya email tidak valid)
+    if (error.name === 'SequelizeValidationError') {
+        return res.status(400).json({ message: 'Invalid data provided.', error: error.message });
+    }
+    res.status(500).json({ message: 'Error during registration', error: error.message });
   }
 };
 

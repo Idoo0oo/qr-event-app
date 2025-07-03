@@ -6,8 +6,14 @@ import Login from '../views/Login.vue';
 import Dashboard from '../views/Dashboard.vue';
 import Scanner from '../views/Scanner.vue'; // Kita buat di Bagian 3
 import NotFound from '../views/NotFound.vue';
+import GuestRegistration from '../views/GuestRegistration.vue';
 
 const routes = [
+  {
+    path: '/register',
+    name: 'GuestRegistration',
+    component: GuestRegistration,
+  },
   {
     path: '/login',
     name: 'Login',

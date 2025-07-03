@@ -10,7 +10,7 @@
     <div 
       :class="['fixed', 'inset-y-0', 'left-0', 'transform', 'md:relative', 'md:translate-x-0', 'transition-transform', 'duration-300', 'ease-in-out', 'w-64', 'bg-gray-800', 'z-30', { 'translate-x-0': isSidebarOpen, '-translate-x-full': !isSidebarOpen }]"
     >
-      <div class="flex items-center justify-center h-16 bg-gray-900 px-4">
+      <div class="flex items-center justify-center h-16 bg-amber-100 px-4">
         <img 
           :src="logo" 
           alt="Gading Pro Logo"
@@ -20,10 +20,13 @@
       <div class="flex flex-col flex-1 overflow-y-auto">
         <nav class="flex-1 px-2 py-4 bg-gray-800">
           <router-link to="/dashboard" @click="isSidebarOpen = false" class="flex items-center px-4 py-2 text-gray-100 bg-gray-700 rounded-md">
-            <span class="mx-4">Dashboard</span>
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+            <span class="mx-4 font-medium">Dashboard</span>
           </router-link>
+          
           <router-link to="/scanner" @click="isSidebarOpen = false" class="flex items-center px-4 py-2 mt-4 text-gray-400 hover:bg-gray-700 hover:text-gray-100 rounded-md">
-            <span class="mx-4">QR Scanner</span>
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span class="mx-4 font-medium">QR Scanner</span>
           </router-link>
         </nav>
       </div>
@@ -65,6 +68,6 @@ import logo from '../assets/GadingPro.png';
 
 const authStore = useAuthStore();
 
-// [BARU] State untuk mengontrol status buka/tutup sidebar di mobile
+// State untuk mengontrol status buka/tutup sidebar di mobile
 const isSidebarOpen = ref(false);
 </script>
