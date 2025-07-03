@@ -22,7 +22,7 @@
             <button @click="$emit('cancel')" class="px-6 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 font-semibold">
               Cancel
             </button>
-            <button @click="$emit('confirm')" class="px-6 py-2 bg-red-600 border border-red-600 rounded-md text-white hover:bg-red-700 font-semibold">
+            <button @click="() => { console.log('Tombol delete di modal diklik!'); $emit('confirm'); }" class="px-6 py-2 bg-red-600 border border-red-600 rounded-md text-white hover:bg-red-700 font-semibold">
               Delete
             </button>
           </div>

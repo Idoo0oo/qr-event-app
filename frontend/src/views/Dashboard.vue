@@ -54,6 +54,7 @@
         </div>
       </div>
       <div class="p-4 md:p-8 overflow-y-auto">
+        <DashboardStats />
         <GuestList />
       </div>
     </div>
@@ -64,6 +65,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import GuestList from '../components/GuestList.vue';
+import DashboardStats from '../components/DashboardStats.vue';
 import logo from '../assets/GadingPro.png';
 
 const authStore = useAuthStore();

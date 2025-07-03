@@ -11,5 +11,6 @@ router.get('/', guestController.getAllGuests);
 router.get('/:id', guestController.getGuestById);
 router.put('/:id', guestController.updateGuest);
 router.delete('/:id', guestController.deleteGuest);
+router.post('/:id/checkin', guestController.manualCheckin);
 
 module.exports = router;

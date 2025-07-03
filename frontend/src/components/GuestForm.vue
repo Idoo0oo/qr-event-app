@@ -31,6 +31,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import apiClient from '../services/api';
+import { useToast } from 'vue-toastification';
 
 const props = defineProps({
   show: Boolean,
@@ -38,6 +39,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'saved']);
+const toast = useToast();
 
 const form = ref({
   name: '',
@@ -60,17 +62,17 @@ const saveGuest = async () => {
   isSaving.value = true;
   try {
     if (isEditing.value) {
-      // Update guest
       await apiClient.put(`/guests/${props.guest.id}`, form.value);
+      toast.success('Data tamu berhasil diperbarui.'); // [PERBAIKAN]
     } else {
-      // Create new guest
       await apiClient.post('/guests', form.value);
+      toast.success('Tamu baru berhasil ditambahkan.'); // [PERBAIKAN]
     }
     emit('saved');
     emit('close');
   } catch (error) {
     console.error('Failed to save guest:', error);
-    alert('Error saving guest. Check console for details.');
+    toast.error('Gagal menyimpan data tamu. Periksa kembali input Anda.'); // [PERBAIKAN]
   } finally {
     isSaving.value = false;
   }

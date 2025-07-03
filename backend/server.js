@@ -38,6 +38,7 @@ const userRoutes = require('./src/routes/user.routes');
 const guestRoutes = require('./src/routes/guest.routes');
 const checkinRoutes = require('./src/routes/checkin.routes');
 const publicRoutes = require('./src/routes/public.routes');
+const dashboardRoutes = require('./src/routes/dashboard.routes');
 
 app.get('/', (req, res) => {
   res.send('QR Event API Server is healthy!');
@@ -47,6 +48,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/guests', guestRoutes);
 app.use('/api/checkin', checkinRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Server Start (tetap sama)
 const startServer = async () => {

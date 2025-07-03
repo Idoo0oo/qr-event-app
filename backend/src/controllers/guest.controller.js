@@ -1,4 +1,5 @@
 const { Guest } = require('../models');
+const { Op } = require('sequelize');
 const { sendInvitationEmail } = require('../services/email.service');
 
 exports.createGuest = async (req, res) => {
@@ -47,7 +48,27 @@ exports.selfRegisterGuest = async (req, res) => {
 
 exports.getAllGuests = async (req, res) => {
   try {
-    const guests = await Guest.findAll({ order: [['createdAt', 'DESC']] });
+    const { search, status } = req.query; // [BARU] Ambil query 'search' dan 'status'
+    let whereClause = {};
+
+    if (search) {
+      whereClause = {
+        ...whereClause,
+        [Op.or]: [
+          { name: { [Op.iLike]: `%${search}%` } }, // iLike untuk case-insensitive
+          { email: { [Op.iLike]: `%${search}%` } }
+        ]
+      };
+    }
+
+    if (status && (status === 'waiting' || status === 'checked_in')) {
+      whereClause.status = status;
+    }
+
+    const guests = await Guest.findAll({ 
+      where: whereClause,
+      order: [['createdAt', 'DESC']] 
+    });
     res.status(200).json({ data: guests });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching guests', error: error.message });
@@ -64,6 +85,28 @@ exports.getGuestById = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error fetching guest', error: error.message });
   }
+};
+
+exports.manualCheckin = async (req, res) => {
+    try {
+        const guest = await Guest.findByPk(req.params.id);
+        if (!guest) {
+            return res.status(404).json({ message: 'Guest not found' });
+        }
+        
+        if (guest.status === 'checked_in') {
+            return res.status(409).json({ message: 'Guest already checked in' });
+        }
+
+        guest.status = 'checked_in';
+        guest.checkedInAt = new Date();
+        await guest.save();
+
+        res.status(200).json({ message: 'Guest checked in successfully', data: guest });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error during manual check-in', error: error.message });
+    }
 };
 
 exports.updateGuest = async (req, res) => {

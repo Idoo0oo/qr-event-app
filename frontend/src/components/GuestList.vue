@@ -1,12 +1,26 @@
 <template>
   <div> 
     <div class="bg-white p-6 rounded-lg shadow-lg">
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h2 class="text-xl font-semibold text-gray-700">Guest List</h2>
-        <button @click="showAddModal = true" class="flex items-center px-4 py-2 text-white bg-orange-400 rounded-md hover:bg-orange-600 transition-colors">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-          Add Guest
-        </button>
+        
+        <div class="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
+          <input 
+            v-model="searchTerm"
+            type="text" 
+            placeholder="Cari nama atau email..."
+            class="px-4 py-2 border border-gray-300 rounded-md w-full md:w-64"
+          >
+          <select v-model="statusFilter" class="px-4 py-2 border border-gray-300 rounded-md w-full md:w-auto">
+            <option value="">Semua Status</option>
+            <option value="waiting">Waiting</option>
+            <option value="checked_in">Checked In</option>
+          </select>
+          <button @click="showAddModal = true" class="flex items-center justify-center w-full md:w-auto px-4 py-2 text-white bg-orange-400 rounded-md hover:bg-orange-600 transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            <span>Add Guest</span>
+          </button>
+        </div>
       </div>
       
       <div class="overflow-x-auto">
@@ -20,6 +34,7 @@
               <th class="py-3 px-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
+          
           <tbody class="divide-y divide-gray-200">
             <tr v-if="isLoading">
               <td colspan="5" class="py-4 text-center text-gray-500">Loading guests...</td>
@@ -37,6 +52,13 @@
                 </span>
               </td>
               <td class="py-3 px-4 text-center whitespace-nowrap space-x-2">
+                <button 
+                  v-if="guest.status === 'waiting'" 
+                  @click="manualCheckin(guest)" 
+                  title="Manual Check-in" 
+                  class="p-2 text-gray-400 hover:text-purple-500 rounded-full hover:bg-gray-100 transition-colors">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                </button>
                 <button @click="showGuestDetails(guest)" title="Show QR Code" class="p-2 text-gray-400 hover:text-green-500 rounded-full hover:bg-gray-100 transition-colors">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 1v4m0 0h-4m4 0l-5-5"></path></svg>
                 </button>
@@ -101,23 +123,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue'; 
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { useToast } from 'vue-toastification';
 import apiClient from '../services/api';
 import GuestForm from './GuestForm.vue';
 import QrcodeVue from 'qrcode.vue';
-// [BARU] Import komponen modal yang baru
 import ConfirmActionModal from './ConfirmActionModal.vue';
 
 const guests = ref([]);
 const isLoading = ref(true);
+const toast = useToast();
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const guestToEdit = ref(null);
 const selectedGuest = ref(null);
-const qrWrapperRef = ref(null); 
+const qrWrapperRef = ref(null);
 const canShare = computed(() => !!navigator.share);
 
-// [BARU] State untuk mengontrol modal delete
+const searchTerm = ref('');
+const statusFilter = ref('');
+
+let debounceTimer = null;
+
 const showDeleteModal = ref(false);
 const guestToDelete = ref(null);
 
@@ -133,29 +160,40 @@ const closeDeleteModal = () => {
 
 const handleDelete = async () => {
   if (!guestToDelete.value) return;
-
   try {
     await apiClient.delete(`/guests/${guestToDelete.value.id}`);
-    fetchGuests(); // Refresh daftar setelah berhasil hapus
+    toast.success(`Tamu "${guestToDelete.value.name}" berhasil dihapus.`);
+    fetchGuests();
   } catch (error) {
     console.error('Failed to delete guest:', error);
-    alert('Failed to delete guest.');
+    toast.error('Gagal menghapus tamu.');
   } finally {
-    closeDeleteModal(); // Tutup modal setelah selesai
+    closeDeleteModal();
   }
 };
 
-// ... (sisa fungsi lainnya tetap sama) ...
+const manualCheckin = async (guest) => {
+  try {
+    await apiClient.post(`/guests/${guest.id}/checkin`);
+    toast.success(`"${guest.name}" berhasil check-in.`);
+    fetchGuests(); // Memanggil fungsi untuk refresh list
+  } catch (error) {
+    console.error('Failed to manually check-in guest:', error);
+    const errorMessage = error.response?.data?.message || 'Gagal melakukan check-in manual.';
+    toast.error(errorMessage);
+  }
+};
+
 const dataURLtoFile = (dataurl, filename) => {
-    let arr = dataurl.split(','),
-        mime = arr[0].match(/:(.*?);/)[1],
-        bstr = atob(arr[1]), 
-        n = bstr.length, 
-        u8arr = new Uint8Array(n);
-    while(n--){
-        u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], filename, {type:mime});
+  let arr = dataurl.split(','),
+    mime = arr[0].match(/:(.*?);/)[1],
+    bstr = atob(arr[1]),
+    n = bstr.length,
+    u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
 }
 
 const getCanvasFromWrapper = () => {
@@ -177,7 +215,7 @@ const downloadQR = async () => {
   await nextTick();
   const canvas = getCanvasFromWrapper();
   if (!canvas) {
-    alert('Error: Could not find QR Code element to download.');
+    toast.error('Error: Could not find QR Code element to download.');
     return;
   }
   try {
@@ -190,51 +228,65 @@ const downloadQR = async () => {
     document.body.removeChild(link);
   } catch (error) {
     console.error("Error during download process:", error);
-    alert('Failed to process QR Code for download.');
+    toast.error('Failed to process QR Code for download.');
   }
 };
 
 const shareQR = async () => {
-    if (!selectedGuest.value || !navigator.share) return;
-    await nextTick();
-    const canvas = getCanvasFromWrapper();
-    if (!canvas) {
-      alert('Error: Could not find QR Code element to share.');
-      return;
+  if (!selectedGuest.value || !navigator.share) return;
+  await nextTick();
+  const canvas = getCanvasFromWrapper();
+  if (!canvas) {
+    toast.error('Error: Could not find QR Code element to share.');
+    return;
+  }
+  try {
+    const dataUrl = canvas.toDataURL('image/png');
+    const fileName = `qr-code-${selectedGuest.value.name.replace(/\s+/g, '-')}.png`;
+    const file = dataURLtoFile(dataUrl, fileName);
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: `QR Code for ${selectedGuest.value.name}`,
+        text: `Here is the QR code invitation for ${selectedGuest.value.name}.`,
+      });
+    } else {
+      toast.warning('This browser does not support sharing files.');
     }
-    try {
-      const dataUrl = canvas.toDataURL('image/png');
-      const fileName = `qr-code-${selectedGuest.value.name.replace(/\s+/g, '-')}.png`;
-      const file = dataURLtoFile(dataUrl, fileName);
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-              files: [file],
-              title: `QR Code for ${selectedGuest.value.name}`,
-              text: `Here is the QR code invitation for ${selectedGuest.value.name}.`,
-          });
-      } else {
-          alert('This browser does not support sharing files.');
-      }
-    } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error sharing QR Code:', error);
-          alert('Could not share the QR Code.');
-        }
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error('Error sharing QR Code:', error);
+      toast.error('Could not share the QR Code.');
     }
+  }
 };
 
 const fetchGuests = async () => {
   isLoading.value = true;
   try {
-    const response = await apiClient.get('/guests');
+    const params = new URLSearchParams();
+    if (searchTerm.value) {
+      params.append('search', searchTerm.value);
+    }
+    if (statusFilter.value) {
+      params.append('status', statusFilter.value);
+    }
+    const response = await apiClient.get(`/guests?${params.toString()}`);
     guests.value = response.data.data;
   } catch (error) {
     console.error('Failed to fetch guests:', error);
-    alert('Could not fetch guests. Please check the console.');
+    toast.error('Gagal memuat daftar tamu.');
   } finally {
     isLoading.value = false;
   }
 };
+
+watch([searchTerm, statusFilter], () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    fetchGuests();
+  }, 300);
+});
 
 const getStatusClass = (status) => {
   return status === 'checked_in' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
@@ -246,7 +298,7 @@ const editGuest = (guest) => {
 };
 
 const showGuestDetails = (guest) => {
-    selectedGuest.value = guest;
+  selectedGuest.value = guest;
 };
 
 const closeModal = () => {
@@ -256,8 +308,6 @@ const closeModal = () => {
 };
 
 onMounted(() => {
-  closeModal();
-  selectedGuest.value = null;
   fetchGuests();
 });
 </script>
