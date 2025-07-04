@@ -38,7 +38,7 @@
         <p class="text-2xl font-bold text-gray-800">{{ attendancePercentage }}%</p>
       </div>
       <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-        <div class="bg-blue-500 h-2.5 rounded-full" :style="{ width: attendancePercentage + '%' }"></div>
+        <div class="bg-orange-400 h-2.5 rounded-full" :style="{ width: attendancePercentage + '%' }"></div>
       </div>
     </div>
 
